@@ -57,3 +57,5 @@ next-env.d.ts
 *.tmp
 *.temp
 
+# clinical images (do not commit)
+/public/casebook-files/

@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { query, queryOne } from '@/lib/db';
+import { getSession } from '@/lib/session';
 
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const data = await request.json();
     const { full_name, dob, gender, phone, address, blood_group, allergies, emergency_contact, photo_url } = data;
 
@@ -48,6 +54,11 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const patients = await query(`
       SELECT 
         id, full_name, dob, gender, phone, photo_url, created_at, updated_at,

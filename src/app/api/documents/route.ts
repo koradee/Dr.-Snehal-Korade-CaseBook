@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { queryOne } from '@/lib/db';
+import { getSession } from '@/lib/session';
 
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const data = await request.json();
     const { patient_id, consultation_id, type, file_url, file_name } = data;
 

@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import { queryOne } from '@/lib/db';
+import { getSession } from '@/lib/session';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const patient = await queryOne(`
       SELECT p.*, 
              (SELECT COALESCE(json_agg(tag_name), '[]') FROM patient_tags WHERE patient_id = p.id) as tags
@@ -25,6 +31,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const data = await request.json();
     const { full_name, dob, gender, phone, address, blood_group, allergies, emergency_contact, photo_url } = data;
 
@@ -84,6 +95,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { supabaseAdmin } = await import('@/lib/supabase');
     const { query } = await import('@/lib/db');
 
