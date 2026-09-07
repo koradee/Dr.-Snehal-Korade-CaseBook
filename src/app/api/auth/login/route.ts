@@ -98,14 +98,21 @@ export async function POST(request: Request) {
   } catch (err: any) {
     console.error('\n❌ [auth/login] Critical Error:');
     console.error('Message:', err.message);
-    if (err.code === 'ECONNREFUSED') {
-      console.error('Reason: The database server is completely unreachable (connection refused).');
-      console.error('Fix: Ensure PostgreSQL is installed and actively running on your machine, and the DATABASE_URL in .env.local is correct.');
+    
+    const isDbConnectionError = 
+      err.code === 'ECONNREFUSED' || 
+      err.code === 'ENOTFOUND' || 
+      (err.code === 'XX000' && err.message?.includes('tenant/user'));
+
+    if (isDbConnectionError) {
+      console.error('Reason: The database server is unreachable or the connection details are invalid.');
+      console.error('Fix: Ensure your DATABASE_URL in .env.local is correct and the database is actively running.');
       return NextResponse.json(
-        { error: 'Cannot connect to the database. Please ensure PostgreSQL is running.' },
+        { error: 'Cannot connect to the database. Please verify your connection settings and ensure the database is running.' },
         { status: 503 }
       );
     }
+    
     console.error(err);
     
     return NextResponse.json(
