@@ -3,6 +3,15 @@ import { queryOne } from '@/lib/db';
 import { verifyPassword, signToken } from '@/lib/auth';
 import { setSessionCookie } from '@/lib/session';
 
+interface RateLimitData {
+  count: number;
+  resetTime: number;
+}
+
+const rateLimitMap = new Map<string, RateLimitData>();
+const MAX_ATTEMPTS = 5;
+const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
 interface AdminUser {
   id: string;
   username: string;
@@ -12,6 +21,30 @@ interface AdminUser {
 
 export async function POST(request: Request) {
   try {
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const now = Date.now();
+
+    const rateLimit = rateLimitMap.get(ip);
+    if (rateLimit) {
+      if (now > rateLimit.resetTime) {
+        rateLimitMap.delete(ip);
+      } else if (rateLimit.count >= MAX_ATTEMPTS) {
+        return NextResponse.json(
+          { error: 'Too many failed login attempts. Please try again in 15 minutes.' },
+          { status: 429 }
+        );
+      }
+    }
+
+    const recordFailure = () => {
+      const current = rateLimitMap.get(ip);
+      if (!current || now > current.resetTime) {
+        rateLimitMap.set(ip, { count: 1, resetTime: now + WINDOW_MS });
+      } else {
+        current.count += 1;
+      }
+    };
+
     const body = await request.json();
     const { username, password } = body as { username?: string; password?: string };
 
@@ -29,6 +62,7 @@ export async function POST(request: Request) {
     );
 
     if (!user) {
+      recordFailure();
       // Constant-time-like response to prevent username enumeration
       await new Promise((r) => setTimeout(r, 300));
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
@@ -36,8 +70,12 @@ export async function POST(request: Request) {
 
     const passwordValid = await verifyPassword(password, user.password_hash);
     if (!passwordValid) {
+      recordFailure();
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
+
+    // Clear rate limit on successful login
+    rateLimitMap.delete(ip);
 
     // Update last_login_at
     await queryOne(

@@ -14,6 +14,15 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 const STORAGE_KEY = 'casebook_theme';
 
+function applyTheme(t: Theme) {
+  const root = document.documentElement;
+  if (t === 'dark') {
+    root.classList.add('dark');
+  } else {
+    root.classList.remove('dark');
+  }
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('light');
   const [mounted, setMounted] = useState(false);
@@ -33,15 +42,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
     setMounted(true);
   }, []);
-
-  function applyTheme(t: Theme) {
-    const root = document.documentElement;
-    if (t === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-  }
 
   function setTheme(t: Theme) {
     setThemeState(t);

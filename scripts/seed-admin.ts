@@ -19,7 +19,15 @@ const pool = new Pool({ connectionString: DATABASE_URL });
 
 async function run() {
   const client = await pool.connect();
-  const password = process.env.ADMIN_PASSWORD || 'Doctor@2024';
+  let password = process.env.ADMIN_PASSWORD;
+  if (!password) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('❌ ERROR: ADMIN_PASSWORD environment variable is missing. Refusing to use weak default password in production.');
+      process.exit(1);
+    }
+    console.warn('⚠️ WARNING: ADMIN_PASSWORD is not set. Falling back to default weak password in development.');
+    password = 'Doctor@2024';
+  }
   const doctorName = process.env.NEXT_PUBLIC_DOCTOR_NAME || 'Dr. Snehal Korade';
   const hash = bcrypt.hashSync(password, 12);
 

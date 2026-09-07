@@ -78,7 +78,11 @@ export async function POST() {
           ['admin']
         );
         if (!existingUser) {
-          const defaultPassword = process.env.ADMIN_PASSWORD || 'Doctor@2024';
+          let defaultPassword = process.env.ADMIN_PASSWORD;
+          if (!defaultPassword) {
+            console.warn('⚠️ WARNING: ADMIN_PASSWORD is not set. Falling back to default weak password in development.');
+            defaultPassword = 'Doctor@2024';
+          }
           const passwordHash = await hashPassword(defaultPassword);
           await query(
             `INSERT INTO admin_user (username, password_hash, display_name)
